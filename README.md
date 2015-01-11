@@ -1,4 +1,4 @@
-Isilon_Tools2
+Isilon_Tools
 =============
   The script utilizing Isilon Platform API interface to back up shares, exports and quotas for use cases such as: DRP and backup   necessaryconfiguration for DR. 
 <hr>
