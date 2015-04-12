@@ -18,15 +18,15 @@ Isilon_Tools
 ### Usage
       usage: isi_tools.py [-h] [-v] [-f FILE] -t TYPE -u USER -pw PASSWORD -n
             CLUSTERNAME
-            backup | restore --file FILE
+            backup | delete | restore --file FILE
       optional arguments:
           -h, --help            show this help message and exit
           -v, --verbose         detailed logging.
       Actions:
-          backup | restore --file FILE
-                        backup/restore the object is selected on the –type flag
+          backup | delete | restore --file FILE
+                        backup/restore/delete the object is selected on the –type flag
       Required:
-          -t TYPE, --type TYPE  specifies the type of the object [shares, export, quotas].
+          -t TYPE, --type TYPE  specifies the type of the object [shares, export, quotas, all].
           -f FILE, --file FILE  Path to the backup file for restore operaiotn.
           -u USER, --username USER
                         Username for login.
@@ -38,6 +38,7 @@ Isilon_Tools
 ### Arguments
       Backup			Backup Action.
       Restore    	Restore action.
+      Delete    	Delete action.
 ### Options
       -h --help               Show this help screen
       -v, --verbose          	For detailed log and messages.
@@ -62,6 +63,15 @@ Isilon_Tools
 
         isi_tools.py restore --user root --password a --name isi-lab.ps --type exports --file ./archive/exports_29_12_18_9.bck
 ![alt tag](https://github.com/obergt/Isilon_Tools2/blob/master/images/restore_exports.png)
+
+        isi_tools.py backup --user root --password a --name isi-lab.ps --type all
+![alt tag](https://github.com/obergt/Isilon_Tools/blob/master/images/backup_all_types.PNG)
+
+        isi_tools.py delete --user root --password a --name isi-lab.ps --type exports
+![alt tag](https://github.com/obergt/Isilon_Tools/blob/master/images/delete_type.PNG)
+
+        isi_tools.py delete --user root --password a --name isi-lab.ps --type all
+![alt tag](https://github.com/obergt/Isilon_Tools/blob/master/images/delete_all_types.PNG)
         
 *Note: As you can see in the screenshot above an error returned while the script was tried to create an export. This is OK, the script is just raising the API error he gets in case of an exception, In this case the export which I was trying to create is already exist.*
 
