@@ -80,7 +80,6 @@ class Session(object):
             self.log.exception("URL Length too long: %s", url)
 
         r = self.s.request(method, url, **kwargs)
-
         #check for authorization issue and retry if we just need to create a new session
         if r.status_code == 401:
             #self.bad_call(r)
@@ -89,6 +88,7 @@ class Session(object):
             r = self.s.request(method, url, **kwargs)
 
         if r.status_code == 404:
+            self.log.log(logging.ERROR, "Object not found!")
             raise ObjectNotFound()
         elif r.status_code == 401:
             self.log_api_call(r, logging.ERROR)
@@ -102,6 +102,9 @@ class Session(object):
         elif r.status_code == 201:
             self.log_api_call(r, logging.DEBUG)
             self.log.log(logging.INFO, "Object created successfully!")
+        elif r.status_code == 204:
+            self.log_api_call(r, logging.DEBUG)
+            self.log.log(logging.INFO, "Object deleted successfully!")
 
         self.log_api_call(r, logging.DEBUG)
         self.r = r
