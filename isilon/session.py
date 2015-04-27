@@ -89,6 +89,7 @@ class Session(object):
 
         if r.status_code == 404:
             self.log.log(logging.ERROR, "Object not found!")
+            print r.text
             raise ObjectNotFound()
         elif r.status_code == 401:
             self.log_api_call(r, logging.ERROR)
