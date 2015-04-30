@@ -37,47 +37,46 @@ class Platform(object):
         resume = None
         r = self.api_call("GET", self.platform_url + "/zones")
         data = r.json()
-        zones = ""
+        zones = []
         for obj in data['zones']:
-            if zones == "":
-                zones = obj['zone_id'], obj['name']
-            else:
-                zones = zones, (obj['zone_id'], obj['name'])
-        for zone in zones:
-            while True:
-                if type == 'shares':
-                    if resume == None:
-                        r = self.api_call("GET", self.platform_url + "/protocols/smb/shares?zone="+zone[1])
-                    else:
-                        r = self.api_call("GET", self.platform_url + "/protocols/smb/shares?zone="+zone[1]+"&resume="+resume)
-                elif type == 'exports':
-                    if resume == None:
-                        r = self.api_call("GET", self.platform_url + "/protocols/nfs/exports?zone="+zone[1])
-                    else:
-                         r = self.api_call("GET", self.platform_url + "/protocols/nfs/exports?zone="+zone[1]+"&resume="+resume)
-                elif type == 'quotas':
-                    if resume == None:
-                        r = self.api_call("GET", self.platform_url + "/quota/quotas/")
-                    else:
-                        r = self.api_call("GET", self.platform_url + "/quota/quotas?resume="+resume)
-                else:
-                    self.log.exception("illegal type!")
-                data = r.json()
-                for obj in data[type]:
-                    if type == 'exports':
-                        obj['zid'] = zone[0]
-                    objects += str(json.dumps(obj)) + "\n"
+            zone = obj['zone_id'], obj['name']
+            zones.append(zone)
+        while True:
+            if type == 'shares' or type == 'exports':
+                for zone in zones:
                     if type == 'shares':
-                        self.log.log(logging.INFO,"Backing up share on path %s description: %s",obj['path'], obj['description'])
-                    if type == 'exports':
-                        for tmp in obj['paths']:
-                            self.log.log(logging.INFO,"Backing up exports on path %s description: %s", tmp, obj['description'])
-                    if type == 'quotas':
-                        self.log.log(logging.INFO,"Backing up quota on path %s type: %s", obj['path'], obj['type'])
-                    count += 1
-                resume = data['resume']
+                        if resume == None:
+                            r = self.api_call("GET", self.platform_url + "/protocols/smb/shares?zone="+zone[1])
+                        else:
+                            r = self.api_call("GET", self.platform_url + "/protocols/smb/shares?zone="+zone[1]+"&resume="+resume)
+                    elif type == 'exports':
+                        if resume == None:
+                            r = self.api_call("GET", self.platform_url + "/protocols/nfs/exports?zone="+zone[1])
+                        else:
+                            r = self.api_call("GET", self.platform_url + "/protocols/nfs/exports?zone="+zone[1]+"&resume="+resume)
+            elif type == 'quotas':
                 if resume == None:
-                    break
+                    r = self.api_call("GET", self.platform_url + "/quota/quotas/")
+                else:
+                    r = self.api_call("GET", self.platform_url + "/quota/quotas?resume="+resume)
+            else:
+                self.log.exception("illegal type!")
+            data = r.json()
+            for obj in data[type]:
+                if type == 'exports':
+                    obj['zid'] = zone[0]
+                objects += str(json.dumps(obj)) + "\n"
+                if type == 'shares':
+                    self.log.log(logging.INFO,"Backing up share on path %s description: %s",obj['path'], obj['description'])
+                if type == 'exports':
+                    for tmp in obj['paths']:
+                        self.log.log(logging.INFO,"Backing up exports on path %s description: %s", tmp, obj['description'])
+                if type == 'quotas':
+                    self.log.log(logging.INFO,"Backing up quota on path %s type: %s", obj['path'], obj['type'])
+                count += 1
+            resume = data['resume']
+            if resume == None:
+                break
         if type in data:
             return objects, count
         return None
@@ -85,30 +84,37 @@ class Platform(object):
     def set_object(self, obj, type):
         r = self.api_call("GET", self.platform_url + "/zones")
         data = r.json()
-        zones = ""
-        for zone in data['zones']:
-            if zones == "":
-                zones = zone['zone_id'], zone['name']
-            else:
-                zones = zones, (zone['zone_id'], zone['name'])
+        zones = []
+        for z in data['zones']:
+            zone = z['zone_id'], z['name']
+            zones.append(zone)
         if type == 'shares':
-            del obj['id']
-            zid = obj['zid']
-            del obj['zid']
-            params = json.dumps(obj)
-            r = self.api_call("POST", self.platform_url + "/protocols/smb/shares?zone="+zones[(int(zid)-1)][1], data=params)
+            try:
+                zid = obj['zid']
+                del obj['zid']
+                del obj['id']
+                params = json.dumps(obj)
+                r = self.api_call("POST", self.platform_url + "/protocols/smb/shares?zone="+zones[(int(zid)-1)][1], data=params)
+            except:
+                del obj['id']
+                params = json.dumps(obj)
+                r = self.api_call("POST", self.platform_url + "/protocols/smb/shares", data=params)
         elif type == 'exports':
             del obj['id']
             del obj['time_delta']
             del obj['unresolved_clients']
             del obj['conflicting_paths']
             del obj['map_all']
-            zid = obj['zid']
-            del obj['zid']
-            if obj['snapshot'] == '-':
-                del obj['snapshot']
-            params = json.dumps(obj)
-            r = self.api_call("POST", self.platform_url + "/protocols/nfs/exports?zone="+zones[(int(zid)-1)][1], data=params)
+            try:
+                zid = obj['zid']
+                del obj['zid']
+                if obj['snapshot'] == '-':
+                    del obj['snapshot']
+                params = json.dumps(obj)
+                r = self.api_call("POST", self.platform_url + "/protocols/nfs/exports?zone="+zones[(int(zid)-1)][1], data=params)
+            except:
+                params = json.dumps(obj)
+                r = self.api_call("POST", self.platform_url + "/protocols/nfs/exports", data=params)
         elif type == 'quotas':
             del obj['usage']
             del obj['linked']
@@ -132,12 +138,10 @@ class Platform(object):
         else:
             r = self.api_call("GET", self.platform_url + "/zones")
             data = r.json()
-            zones = ""
-            for zone in data['zones']:
-                if zones == "":
-                    zones = zone['zone_id'], zone['name']
-                else:
-                    zones = zones, (zone['zone_id'], zone['name'])
+            zones = []
+            for obj in data['zones']:
+                zone = obj['zone_id'], obj['name']
+                zones.append(zone)
             for zone in zones:
                 if type == 'shares':
                     self.log.log(logging.INFO,"Lists all the shares from access zone "+zone[1])
